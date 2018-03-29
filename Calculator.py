@@ -21,7 +21,7 @@ class Calculator(object):
         # return sum((ydata - c1 * (1 - exp(-c2 * xdata ** 2 / (2 * dml)))) ** 2)
         return sum((self.residuals(p, self.ydata, self.xdata)) ** 2)
 
-    def fitting(self, n, m_size, f, cr, iterate_times, x_l, x_u, leastsqN, ratio, eps,checkN):
+    def fitting(self, n, m_size, f, cr, iterate_times, x_l, x_u, leastsqN, ratio, eps, checkN):
         # 建立一个全是0的三维数组
         x_all = np.zeros((iterate_times, m_size, n))
         # 初始化第1代种群,第1代为随机生成
@@ -79,4 +79,4 @@ class Calculator(object):
         # print(evaluate_result)
         print('最优个体为', best_x_i)
         # print('最优解为', best_result)
-        return best_x_i
+        return best_x_i, best_result_record

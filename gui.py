@@ -177,26 +177,28 @@ class Example(QWidget):
         xdata = array(x)
         ydata = array(y)
 
-
         n = 2
         x_l = np.array([0, 0])
         x_u = np.array([100, 1])
 
         m_size = 50
-        # 原来是f = 0.5
+        # 原来是f = 0.5，实数编码变异的变化范围参数
         f = 0.5
-        # 原来是cr = 0.3
+        # 原来是cr = 0.3，交叉概率
         cr = 0.3
         iterate_times = int(self.lb10.text())
         eps = float(self.lb8.text())
-        leastsqN = iterate_times / 10
+        checkN = 100
+        leastsqN = checkN / 10
         ratio = 1 / 10
+        eps = 1e-10
 
         calc = Calculator.Calculator(xdata, ydata, dml)
 
-        best_x_i = calc.fitting(n=n, m_size=m_size, f=f, cr=cr, iterate_times=iterate_times, x_l=x_l, x_u=x_u,
-                                leastsqN=leastsqN,
-                                ratio=ratio, eps=eps)
+        best_x_i, best_result_record = calc.fitting(n=n, m_size=m_size, f=f, cr=cr, iterate_times=iterate_times,
+                                                    x_l=x_l, x_u=x_u,
+                                                    leastsqN=leastsqN,
+                                                    ratio=ratio, eps=eps, checkN=checkN)
 
         timeStr = time.strftime('%Y-%m-%d %H-%M-%S', time.localtime(time.time()))
         timeStrTotal = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time()))
@@ -236,6 +238,35 @@ class Example(QWidget):
         newWb.save(xlsfile)
         QMessageBox.about(self, '完成', '已完成计算，请打开data.xls')
 
+        plt.figure(1)
+
+        plt.plot(x, Mab_plus, 'go-', label=u"$Ma^{b+}$", linewidth=1)
+        plt.plot(x, Mab, 'bo-', label=u"$Ma^{b}$", linewidth=1)
+
+        plt.title(u"TR14 phase detector")
+        plt.legend()
+
+        ax = plt.gca()
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.xaxis.set_ticks_position('bottom')
+        ax.spines['bottom'].set_position(('data', 0))
+        ax.yaxis.set_ticks_position('left')
+        ax.spines['left'].set_position(('data', 0))
+
+        ax.set_xlim(0, x[len(x) - 1] * 1.05)
+        ax.set_ylim(0, Mab_plus[0] * 1.05)
+
+        plt.xlabel(u"$\Delta g/cm$", size=20)
+        plt.ylabel(u"$M/ng$", size=20)
+
+        plt.grid(True)
+
+        plt.show()
+
+        plt.figure("dqq")
+        plt.plot([2, 3, 2, 4, 4, 7, 3])
+        plt.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
