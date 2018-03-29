@@ -1,6 +1,7 @@
 from numpy import exp
 import numpy as np
 from scipy.optimize import leastsq
+import matplotlib.pyplot as plt
 
 
 class Calculator(object):
@@ -20,7 +21,7 @@ class Calculator(object):
         # return sum((ydata - c1 * (1 - exp(-c2 * xdata ** 2 / (2 * dml)))) ** 2)
         return sum((self.residuals(p, self.ydata, self.xdata)) ** 2)
 
-    def fitting(self, n, m_size, f, cr, iterate_times, x_l, x_u, leastsqN, ratio):
+    def fitting(self, n, m_size, f, cr, iterate_times, x_l, x_u, leastsqN, ratio, eps,checkN):
         # 建立一个全是0的三维数组
         x_all = np.zeros((iterate_times, m_size, n))
         # 初始化第1代种群,第1代为随机生成
@@ -28,7 +29,17 @@ class Calculator(object):
             x_all[0][i] = x_l + np.random.random() * (x_u - x_l)
         # print('寻优参数个数为', n, '优化区间分别为', x_l, x_u)
         # g的值为0到iterate_times-2，x_all的索引范围是0--99一共100代，下标为iterate_times - 1的就是最后一代
+        best_result_record = []
+        end_iterate_time = 0
         for g in range(iterate_times - 1):
+            evaluate_result_temp = [self.evaluate_func(x_all[g][i]) for i in range(m_size)]
+            best_result_temp = evaluate_result_temp[np.argmin(evaluate_result_temp)]
+            best_result_record.append(best_result_temp)
+            # print(best_result_temp)
+            # 连续checkN代的最优结果的差异小于eps即终止
+            if g > checkN and ((best_result_record[g - checkN] - best_result_record[g]) <= eps):
+                end_iterate_time = g
+                break
             # 每leastsqN代执行一次LM算法寻找使残差平方和最小的参数
             if (g + 1) % leastsqN == 0:
                 result = [self.evaluate_func(x_all[g][i]) for i in range(m_size)]
@@ -55,15 +66,17 @@ class Calculator(object):
                         x_all[g + 1][i] = v_i
                     else:
                         x_all[g + 1][i] = x_all[g][i]
+
             # 此处输出的代数从1开始计算，即第1代、第2代、第3代...
             # print('第', g + 2, '代')
             # print(x_all[g + 1])
-        evaluate_result = [self.evaluate_func(x_all[iterate_times - 1][i]) for i in range(m_size)]
-        best_x_i = x_all[iterate_times - 1][np.argmin(evaluate_result)]
-        best_result = evaluate_result[np.argmin(evaluate_result)]
+        evaluate_result = [self.evaluate_func(x_all[end_iterate_time][i]) for i in range(m_size)]
+        best_x_i = x_all[end_iterate_time][np.argmin(evaluate_result)]
+        # plt.plot(best_result_record)
+        # plt.show()
+        # best_result = evaluate_result[np.argmin(evaluate_result)]
 
         # print(evaluate_result)
         print('最优个体为', best_x_i)
         # print('最优解为', best_result)
         return best_x_i
-

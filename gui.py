@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QInputDialog, QGridLayout, QMessageBox)
-from PyQt5.QtWidgets import QDesktopWidget
+from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QInputDialog, QGridLayout, QMessageBox,
+                             QLineEdit, QDesktopWidget)
 from PyQt5.QtGui import QIcon
 import sys
 from numpy import array
@@ -12,6 +12,7 @@ import Calculator
 import time
 from sklearn.metrics import r2_score
 import math
+import matplotlib.pyplot as plt
 
 
 class Example(QWidget):
@@ -32,14 +33,24 @@ class Example(QWidget):
         self.lb4 = QLabel('Cd')
         self.lb5 = QLabel('4.64')
         self.lb6 = QLabel('86400')
+
+        self.lb7 = QLabel('收敛指标：')
+        self.lb8 = QLabel('1e-10')
+        self.lb9 = QLabel('最大迭代次数：')
+        self.lb10 = QLabel('10000')
+
         self.bt1 = QPushButton('修改元素')
         self.bt2 = QPushButton('修改窗口面积')
         self.bt3 = QPushButton('修改时间')
+        self.bt4 = QPushButton('修改收敛指标')
+        self.bt5 = QPushButton('修改最大迭代次数')
         self.btCalc = QPushButton('开始计算')
 
         self.bt1.clicked.connect(self.showDialog)
         self.bt2.clicked.connect(self.showDialog)
         self.bt3.clicked.connect(self.showDialog)
+        self.bt4.clicked.connect(self.showDialog)
+        self.bt5.clicked.connect(self.showDialog)
 
         self.btCalc.clicked.connect(self.calc)
 
@@ -51,10 +62,16 @@ class Example(QWidget):
         grid.addWidget(self.lb4, 0, 1)
         grid.addWidget(self.lb5, 1, 1)
         grid.addWidget(self.lb6, 2, 1)
+        grid.addWidget(self.lb7, 3, 0)
+        grid.addWidget(self.lb8, 3, 1)
+        grid.addWidget(self.lb9, 4, 0)
+        grid.addWidget(self.lb10, 4, 1)
         grid.addWidget(self.bt1, 0, 2)
         grid.addWidget(self.bt2, 1, 2)
         grid.addWidget(self.bt3, 2, 2)
-        grid.addWidget(self.btCalc, 3, 1)
+        grid.addWidget(self.bt4, 3, 2)
+        grid.addWidget(self.bt5, 4, 2)
+        grid.addWidget(self.btCalc, 5, 1)
 
         self.setLayout(grid)
         # self.setFixedSize(self.width(), self.height())
@@ -69,17 +86,40 @@ class Example(QWidget):
         sender = self.sender()
         element = ['Ag', 'Al', 'Cd', 'Co', 'Cr', 'Cu', 'Fe', 'Mn', 'Ni', 'Pb', 'Zn']
         if sender == self.bt1:
-            text, ok = QInputDialog.getItem(self, '修改元素', '请选择元素：', element, current=2)
+            text, ok = QInputDialog.getItem(self, '修改元素', '请选择元素：', element, current=element.index(self.lb4.text()))
             if ok:
                 self.lb4.setText(text)
         elif sender == self.bt2:
-            text, ok = QInputDialog.getDouble(self, '修改面积', '请输入窗口面积：', min=1.0, decimals=2, value=4.64)
+            text, ok = QInputDialog.getDouble(self, '修改面积', '请输入窗口面积：', min=1.0, decimals=2,
+                                              value=float(self.lb5.text()))
             if ok:
                 self.lb5.setText(str(text))
         elif sender == self.bt3:
-            text, ok = QInputDialog.getInt(self, '修改时间', '请输入时间：', min=1, value=86400)
+            text, ok = QInputDialog.getInt(self, '修改时间', '请输入时间：', min=1, value=int(self.lb6.text()))
             if ok:
                 self.lb6.setText(str(text))
+        elif sender == self.bt4:
+            while (True):
+                try:
+                    text, ok = QInputDialog.getText(self, '修改收敛指标', '请输入收敛指标：', QLineEdit.Normal, self.lb8.text())
+                    if ok and text.strip() != '':
+                        d = float(text)
+                        self.lb8.setText(str(text))
+                        print(d)
+                        print(type(d))
+                        break
+                    else:
+                        if not ok:
+                            break
+                        elif text.strip() == '':
+                            QMessageBox.about(self, '错误', '请输入有效收敛指标')
+                except Exception as e:
+                    QMessageBox.about(self, '错误', '请输入有效收敛指标')
+
+        elif sender == self.bt5:
+            text, ok = QInputDialog.getInt(self, '修改最大迭代次数', '最大迭代次数：', min=1, value=int(self.lb10.text()))
+            if ok:
+                self.lb10.setText(str(text))
 
     def calc(self):
         xlsfile = r"data.xls"  # 打开指定路径中的xls文件
@@ -137,6 +177,7 @@ class Example(QWidget):
         xdata = array(x)
         ydata = array(y)
 
+
         n = 2
         x_l = np.array([0, 0])
         x_u = np.array([100, 1])
@@ -146,7 +187,8 @@ class Example(QWidget):
         f = 0.5
         # 原来是cr = 0.3
         cr = 0.3
-        iterate_times = 100
+        iterate_times = int(self.lb10.text())
+        eps = float(self.lb8.text())
         leastsqN = iterate_times / 10
         ratio = 1 / 10
 
@@ -154,7 +196,7 @@ class Example(QWidget):
 
         best_x_i = calc.fitting(n=n, m_size=m_size, f=f, cr=cr, iterate_times=iterate_times, x_l=x_l, x_u=x_u,
                                 leastsqN=leastsqN,
-                                ratio=ratio)
+                                ratio=ratio, eps=eps)
 
         timeStr = time.strftime('%Y-%m-%d %H-%M-%S', time.localtime(time.time()))
         timeStrTotal = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time()))
