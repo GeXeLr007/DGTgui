@@ -246,6 +246,16 @@ class Example(QWidget):
             sheet1.write(i + j, 1, Mab_plus[j])
             sheet1.write(i + j, 2, Mab[j])
 
+        i += len(x)
+        # 假定厚度差达到0.8mm时完全解离，接下来计算Cm
+        max_delt_g_differ = 0.8
+        max_Mab = cdgt * dm * A * t / max_delt_g_differ
+        max_Cm_pie = best_x_i[0] * (1 - np.exp(-best_x_i[1] * max_delt_g_differ ** 2 / (2 * dml)))
+        max_Mab_plus = max_Cm_pie * dml * A * t / max_delt_g_differ + max_Mab
+        Cm = (max_Mab_plus * (max_delt_g_differ + delt_g0) / (A * t) - max_Cm_pie * dml) / dm
+        sheet1.write(i, 0, 'Cm=')
+        sheet1.write(i, 1, Cm)
+
         newWb.save(xlsfile)
         QMessageBox.about(self, '完成', '已完成计算，请打开data.xls')
 
@@ -258,7 +268,7 @@ class Example(QWidget):
         plt.figure(2)
         self.myplot(yplot1=Mab_plus, yplot2=Mab, xplot=x,
                     title_str=u"$change\quadof\quadM\quadwith\quaddifferent\quad\Delta g$",
-                    x_label=u"$\Delta g/cm$",
+                    x_label=u"$\Delta g/mm$",
                     y_label=u"$M/ng$", legend1=u"$Ma^{b+}$", legend2=u"$Ma^{b}$", isO='o')
 
     def myplot(self, yplot1, yplot2, title_str, x_label, y_label, legend1, legend2, isO='', xplot=None):
