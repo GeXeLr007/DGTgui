@@ -30,10 +30,12 @@ class Calculator(object):
         # print('寻优参数个数为', n, '优化区间分别为', x_l, x_u)
         # g的值为0到iterate_times-2，x_all的索引范围是0--99一共100代，下标为iterate_times - 1的就是最后一代
         best_result_record = []
+        average_result_record = []
         end_iterate_time = 0
         for g in range(iterate_times - 1):
             evaluate_result_temp = [self.evaluate_func(x_all[g][i]) for i in range(m_size)]
             best_result_temp = evaluate_result_temp[np.argmin(evaluate_result_temp)]
+            average_result_record.append(sum(evaluate_result_temp) / len(evaluate_result_temp))
             best_result_record.append(best_result_temp)
             # print(best_result_temp)
             # 连续checkN代的最优结果的差异小于eps即终止
@@ -79,4 +81,4 @@ class Calculator(object):
         # print(evaluate_result)
         print('最优个体为', best_x_i)
         # print('最优解为', best_result)
-        return best_x_i, best_result_record
+        return best_x_i, best_result_record, average_result_record

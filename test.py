@@ -3,6 +3,8 @@ from numpy import array
 import numpy as np
 import matplotlib.pyplot as plt
 import Calculator
+import matplotlib.pyplot as plt
+
 
 xlsfile = r"data.xls"  # 打开指定路径中的xls文件
 
@@ -50,10 +52,9 @@ for i in range(sheet0.nrows - 1):
 xdata = array(x)
 ydata = array(y)
 
-plt.plot(x,Mab)
-plt.plot(x,Mab_plus)
-plt.show()
-
+# plt.plot(x, Mab)
+# plt.plot(x, Mab_plus)
+# plt.show()
 
 n = 2
 x_l = np.array([0, 0])
@@ -71,6 +72,11 @@ ratio = 1 / 10
 eps = 1e-10
 calc = Calculator.Calculator(xdata, ydata, dml)
 
-best_x_i = calc.fitting(n=n, m_size=m_size, f=f, cr=cr, iterate_times=iterate_times, x_l=x_l, x_u=x_u,
-                        leastsqN=leastsqN,
-                        ratio=ratio, eps=eps, checkN=checkN)
+best_x_i, best_result_record, average_result_record = calc.fitting(n=n, m_size=m_size, f=f, cr=cr,
+                                                                   iterate_times=iterate_times, x_l=x_l, x_u=x_u,
+                                                                   leastsqN=leastsqN,
+                                                                   ratio=ratio, eps=eps, checkN=checkN)
+
+plt.plot(best_result_record)
+plt.plot(average_result_record)
+plt.show()

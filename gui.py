@@ -195,10 +195,11 @@ class Example(QWidget):
 
         calc = Calculator.Calculator(xdata, ydata, dml)
 
-        best_x_i, best_result_record = calc.fitting(n=n, m_size=m_size, f=f, cr=cr, iterate_times=iterate_times,
-                                                    x_l=x_l, x_u=x_u,
-                                                    leastsqN=leastsqN,
-                                                    ratio=ratio, eps=eps, checkN=checkN)
+        best_x_i, best_result_record, average_result_record = calc.fitting(n=n, m_size=m_size, f=f, cr=cr,
+                                                                           iterate_times=iterate_times,
+                                                                           x_l=x_l, x_u=x_u,
+                                                                           leastsqN=leastsqN,
+                                                                           ratio=ratio, eps=eps, checkN=checkN)
 
         timeStr = time.strftime('%Y-%m-%d %H-%M-%S', time.localtime(time.time()))
         timeStrTotal = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time()))
@@ -235,15 +236,39 @@ class Example(QWidget):
         sheet1.write(i, 2, '相关RR=')
         sheet1.write(i, 3, rr)
 
+        i += 1
+        sheet1.write(i, 0, '厚度差')
+        sheet1.write(i, 1, 'Mab+')
+        sheet1.write(i, 2, 'Mab')
+        i += 1
+        for j in range(len(x)):
+            sheet1.write(i + j, 0, x[j])
+            sheet1.write(i + j, 1, Mab_plus[j])
+            sheet1.write(i + j, 2, Mab[j])
+
         newWb.save(xlsfile)
         QMessageBox.about(self, '完成', '已完成计算，请打开data.xls')
 
         plt.figure(1)
+        self.myplot(yplot1=average_result_record, yplot2=best_result_record,
+                    title_str=u"$change\quadof\quadaverage\quadand\quadbest\quadresult$",
+                    x_label=u"$iteration\quadtime$",
+                    y_label=u"$loss$", legend1=u"$average\quadresult$", legend2=u"$best\quadresult$")
 
-        plt.plot(x, Mab_plus, 'go-', label=u"$Ma^{b+}$", linewidth=1)
-        plt.plot(x, Mab, 'bo-', label=u"$Ma^{b}$", linewidth=1)
+        plt.figure(2)
+        self.myplot(yplot1=Mab_plus, yplot2=Mab, xplot=x,
+                    title_str=u"$change\quadof\quadM\quadwith\quaddifferent\quad\Delta g$",
+                    x_label=u"$\Delta g/cm$",
+                    y_label=u"$M/ng$", legend1=u"$Ma^{b+}$", legend2=u"$Ma^{b}$", isO='o')
 
-        plt.title(u"TR14 phase detector")
+    def myplot(self, yplot1, yplot2, title_str, x_label, y_label, legend1, legend2, isO='', xplot=None):
+        if xplot is None:
+            xplot = [i + 1 for i in range(len(yplot1))]
+
+        plt.plot(xplot, yplot1, 'r' + isO + '-', label=legend1, linewidth=1)
+        plt.plot(xplot, yplot2, 'b' + isO + '-', label=legend2, linewidth=1)
+
+        plt.title(title_str, size=20)
         plt.legend()
 
         ax = plt.gca()
@@ -254,19 +279,16 @@ class Example(QWidget):
         ax.yaxis.set_ticks_position('left')
         ax.spines['left'].set_position(('data', 0))
 
-        ax.set_xlim(0, x[len(x) - 1] * 1.05)
-        ax.set_ylim(0, Mab_plus[0] * 1.05)
+        ax.set_xlim(0, xplot[len(xplot) - 1] * 1.05)
+        ax.set_ylim(0, yplot1[0] * 1.05)
 
-        plt.xlabel(u"$\Delta g/cm$", size=20)
-        plt.ylabel(u"$M/ng$", size=20)
+        plt.xlabel(x_label, size=20)
+        plt.ylabel(y_label, size=20)
 
         plt.grid(True)
 
         plt.show()
 
-        plt.figure("dqq")
-        plt.plot([2, 3, 2, 4, 4, 7, 3])
-        plt.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
