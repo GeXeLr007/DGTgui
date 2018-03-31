@@ -249,7 +249,7 @@ class Example(QWidget):
         i += len(x)
         # 假定厚度差达到0.8mm时完全解离，接下来计算Cm
         max_delt_g_differ = 0.8
-        max_Mab = cdgt * dm * A * t / max_delt_g_differ
+        max_Mab = cdgt * dm * A * t / (max_delt_g_differ + delt_g0)
         max_Cm_pie = best_x_i[0] * (1 - np.exp(-best_x_i[1] * max_delt_g_differ ** 2 / (2 * dml)))
         max_Mab_plus = max_Cm_pie * dml * A * t / max_delt_g_differ + max_Mab
         Cm = (max_Mab_plus * (max_delt_g_differ + delt_g0) / (A * t) - max_Cm_pie * dml) / dm
