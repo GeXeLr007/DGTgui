@@ -1,0 +1,274 @@
+Option Explicit
+Dim max_sample&, location As String
+Sub DGTtransform()
+
+Dim sDir As String, CurDir As String
+
+'CurDir = ThisWorkbook.Path
+'sDir = Dir(CurDir & "\*.xlsx")
+'Do While Len(sDir)
+
+    'Workbooks.Open Filename:=CurDir & "\" & sDir
+    
+    source_delete
+    Cdgt
+    import
+    deleteNum
+    CV
+    mean
+    
+    'Application.WindowState = xlMaximized
+    'ActiveWorkbook.Save
+    'sDir = Dir
+'Loop
+
+End Sub
+Sub source_delete()
+'删除source工作表中的多余列
+Dim r As Range, arr(20) As Integer, findArr() As String, str As String, flag As Integer, i&, j&
+
+create_sheet ("source")
+Sheets("raw").UsedRange.Copy
+Sheets("source").Cells(1, 1).PasteSpecial xlPasteValues
+
+findArr = Split("Cd,Fe,Mn,Ca,S,Se,Zn,Pb,Ni,Cu,As,Cr", ",")
+
+'Sheets("source").Activate
+
+Set r = Rows(2).Find("样品名称")
+arr(0) = r.Column
+
+Rows(1).Replace what:="  [ He ] ", replacement:=""
+
+For i = LBound(findArr) To UBound(findArr)
+    str = findArr(i)
+    Set r = Rows(1).Find(str)
+    arr(i + 1) = r.Column
+Next
+
+Set r = Columns(1)
+For j = 1 To ActiveSheet.UsedRange.Columns.Count
+    flag = 1
+    For i = LBound(arr) To UBound(arr)
+        If arr(i) = j Then
+        flag = 0
+        Exit For
+        End If
+    Next
+    If flag = 1 Then
+    Set r = Union(r, Columns(j))
+    End If
+Next
+
+r.Delete
+
+'修改S元素列的浓度单位为ug/L
+Cells(2, 2).Replace what:="mg/L", replacement:="ug/L"
+On Error Resume Next
+For i = 3 To ActiveSheet.UsedRange.Rows.Count
+    Cells(i, 2) = Cells(i, 2) * 1000
+Next
+
+Cells(1, 1).Select
+ActiveSheet.Columns.AutoFit
+End Sub
+Sub Cdgt()
+Dim m_assistant As Double, delt_g As Double, Ds As Double, A As Double, T As Double, i&, j&, p&, q&, class_num&
+
+create_sheet ("Cdgt")
+With Sheets("source")
+    .Columns(1).Copy Sheets("Cdgt").Cells(1, 1)
+    Union(.Rows(1), .Rows(2)).Copy Sheets("Cdgt").Cells(1, 1)
+End With
+
+On Error Resume Next
+Sheets("calculate").Activate
+
+'计算膜厚度种类个数
+i = 2
+Do While Cells(2, i) <> ""
+    i = i + 1
+Loop
+class_num = i - 2
+
+Dim arr As Variant
+
+arr = Range(Cells(16, 2), Cells(16 + 100, 2 + class_num - 1))
+'新装置or旧装置
+If Cells(6, 3).Interior.Color = 65535 Then
+    A = 4.64
+Else
+    A = 4
+End If
+T = Sheets("calculate").Cells(8, 2)
+
+With Sheets("Cdgt")
+For j = 2 To .UsedRange.Columns.Count
+    Ds = Cells(13, j)
+    For i = 3 To .UsedRange.Rows.Count
+        For p = LBound(arr, 2) To UBound(arr, 2)
+            For q = LBound(arr, 1) To UBound(arr, 1)
+                If .Cells(i, 1) Like "*" & arr(q, p) & "_*" And arr(q, p) <> "" Then
+                    delt_g = Cells(10, p + 1)
+                    m_assistant = Cells(11, p + 1)
+                    GoTo FOUND
+                End If
+            Next
+        Next
+FOUND:
+        .Cells(i, j) = m_assistant * Sheets("source").Cells(i, j) * delt_g / (Ds * A * T)
+    Next
+Next
+End With
+
+Sheets("Cdgt").Activate
+Sheets("Cdgt").Cells(1, 1).Select
+Sheets("Cdgt").Columns.AutoFit
+End Sub
+Sub import()
+'导出数据到“middle”
+Dim i&, j&, k&, arr As Variant, str As String
+
+create_sheet ("middle")
+
+Sheets("source").Activate
+str = Cells(ActiveSheet.UsedRange.Rows.Count, 1).Value
+arr = Split(str, "_")
+max_sample = arr(1)
+location = arr(0)
+
+Sheets("middle").Activate
+Cells(1, 1) = "CK_1"
+Cells(2, 1) = "CK_2"
+Cells(3, 1) = "CK_3"
+k = 4
+For i = 1 To max_sample
+    For j = 1 To 3
+        Cells(k, 1) = location & "_" & i & "_" & j
+        k = k + 1
+    Next
+Next
+
+For j = 3 To Sheets("Cdgt").UsedRange.Rows.Count
+    For i = 1 To Sheets("middle").UsedRange.Rows.Count
+        If Sheets("Cdgt").Cells(j, 1) = Sheets("middle").Cells(i, 1) Then
+            Sheets("Cdgt").Rows(j).Copy Rows(i)
+            Exit For
+        End If
+    Next
+Next
+
+ActiveSheet.Columns.AutoFit
+End Sub
+Sub deleteNum()
+'剔除异常值
+Dim score1 As Double, score2 As Double, score3 As Double, arr, arrbac, _
+mean As Double, i&, j&, row_num&, last_column&, median_num As Double, max_num As Double
+Sheets("middle").Activate
+last_column = ActiveSheet.UsedRange.Columns.Count
+For i = 1 To max_sample
+    'On Error Resume Next
+    row_num = (i - 1) * 3 + 1
+    For j = 2 To last_column
+        arr = Range(Cells(row_num, j), Cells(row_num + 2, j))
+        '判断是否有3个平行，只有2个平行的不再剔除
+        score1 = 0
+        score2 = 0
+        score3 = 0
+        If shouldDelete(row_num, j) Then
+            median_num = Application.Median(Range(Cells(row_num, j), Cells(row_num + 2, j)))
+            score1 = Abs(Cells(row_num, j) - median_num)
+            score2 = Abs(Cells(row_num + 1, j) - median_num)
+            score3 = Abs(Cells(row_num + 2, j) - median_num)
+            arrbac = Array(score1, score2, score3)
+            max_num = Application.Max(arrbac)
+            Select Case max_num
+                Case score1
+                    Cells(row_num, j).ClearContents
+                Case score2
+                    Cells(row_num + 1, j).ClearContents
+                Case score3
+                    Cells(row_num + 2, j).ClearContents
+            End Select
+        End If
+    Next
+Next
+End Sub
+Function shouldDelete(row_num&, j&) As Boolean
+Dim arr, ele
+shouldDelete = True
+arr = Range(Cells(row_num&, j), Cells(row_num& + 2, j))
+For Each ele In arr
+    If ele = "" Or ele = 0 Then
+        shouldDelete = False
+        Exit For
+    End If
+Next
+End Function
+Sub CV()
+'计算CV
+Dim i&, j&, row_num&, k&
+
+create_sheet ("CV")
+Sheets("source").Activate
+Rows(1).Copy Sheets("CV").Cells(1, 1)
+Sheets("CV").Activate
+Cells(2, 1) = "CK"
+k = 3
+For i = 1 To max_sample
+    Cells(k, 1) = location & "_" & i
+    k = k + 1
+Next
+
+Sheets("middle").Activate
+
+On Error Resume Next
+For j = 2 To Sheets("CV").UsedRange.Columns.Count
+For i = 2 To Sheets("CV").UsedRange.Rows.Count
+row_num = (i - 2) * 3 + 1
+Sheets("CV").Cells(i, j) = Application.StDev(Range(Cells(row_num, j), Cells(row_num + 2, j))) / Application.Average(Range(Cells(row_num, j), Cells(row_num + 2, j)))
+Sheets("CV").Cells(i, j).NumberFormatLocal = "0.00%"
+Next
+Next
+
+Sheets("CV").Activate
+ActiveSheet.Columns.AutoFit
+End Sub
+Sub mean()
+'求平均值
+Dim i&, j&, row_num&
+
+create_sheet ("mean")
+Sheets("CV").Activate
+Columns(1).Copy Sheets("mean").Cells(1, 1)
+Rows(1).Copy Sheets("mean").Cells(1, 1)
+Sheets("mean").Activate
+
+For j = 2 To ActiveSheet.UsedRange.Columns.Count
+For i = 2 To ActiveSheet.UsedRange.Rows.Count
+row_num = (i - 2) * 3 + 1
+Cells(i, j) = Application.Average(Range(Sheets("middle").Cells(row_num, j), Sheets("middle").Cells(row_num + 2, j)))
+Next
+Next
+ActiveSheet.Columns.AutoFit
+End Sub
+Function create_sheet(str As String)
+    
+    Dim has_sheet As Boolean, ws As Worksheet
+  
+    has_sheet = False
+    For Each ws In Sheets
+        If ws.Name = str Then
+            has_sheet = True
+            Exit For
+        End If
+    Next
+    If has_sheet Then
+        Application.DisplayAlerts = False
+        Sheets(str).Delete
+        Application.DisplayAlerts = True
+    End If
+    Worksheets.Add(After:=Worksheets(Worksheets.Count)).Name = str
+End Function
+
+

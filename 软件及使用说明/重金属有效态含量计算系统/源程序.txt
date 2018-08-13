@@ -1,0 +1,53 @@
+Sub test()
+Dim dm As Double, dml As Double
+'create_sheet ("result")
+K = Cells(2, 4)
+Cml = Cells(2, 5)
+
+Mab_plus0 = Cells(2, 2)
+delt_g0 = Cells(2, 1)
+For j = 4 To 15
+    If Cells(3, j).Interior.ColorIndex <> xlNone Then
+        dm = Cells(4, j)
+        
+        Exit For
+    End If
+Next
+
+dml = 0.2 * dm
+A = Cells(2, 6)
+t = Cells(2, 7)
+'计算理论Cdgt值
+cdgt = Mab_plus0 * delt_g0 / (dm * A * t)
+
+'计算Cm的值
+max_delt_g_differ = 0.8
+max_Mab = cdgt * dm * A * t / (max_delt_g_differ + delt_g0)
+max_Cm_pie = Cml * (1 - Exp(-K * max_delt_g_differ ^ 2 / (2 * dml)))
+max_Mab_plus = max_Cm_pie * dml * A * t / max_delt_g_differ + max_Mab
+Cm = (max_Mab_plus * (max_delt_g_differ + delt_g0) / (A * t) - max_Cm_pie * dml) / dm
+
+Cells(6, 5) = Cm
+
+End Sub
+
+
+
+Function create_sheet(str As String)
+    
+    Dim has_sheet As Boolean, ws As Worksheet
+  
+    has_sheet = False
+    For Each ws In Sheets
+        If ws.Name = str Then
+            has_sheet = True
+            Exit For
+        End If
+    Next
+    If has_sheet Then
+        Application.DisplayAlerts = False
+        Sheets(str).Delete
+        Application.DisplayAlerts = True
+    End If
+    Worksheets.Add(After:=Worksheets(Worksheets.Count)).Name = str
+End Function

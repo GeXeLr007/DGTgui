@@ -1,0 +1,83 @@
+Option Explicit
+Sub transform()
+    
+    Dim sDir As String
+    Dim curdir As String
+    Dim arr As Variant
+    Dim i&, j&
+    
+    curdir = ThisWorkbook.Path
+    sDir = Dir(curdir & "\*.csv")
+    While Len(sDir)
+
+        Workbooks.Open Filename:=curdir & "\" & sDir
+        ActiveSheet.Columns.AutoFit
+        
+        i = 6
+        ReDim arr(1 To 2)
+        arr(1) = 6
+        arr(2) = 7
+        'MsgBox (arr(1))
+        While Cells(1, i) <> ""
+            i = i + 3
+            ReDim Preserve arr(1 To (Int((i - 5) / 3) + 1) * 2)
+            arr(Int((i - 5) / 3) * 2 + 1) = Int((i - 5) / 3) * 3 + 1 + 5
+            arr(Int((i - 5) / 3) * 2 + 2) = Int((i - 5) / 3) * 3 + 1 + 5 + 1
+        Wend
+        
+        For j = UBound(arr) To LBound(arr) Step -1
+            Columns(arr(j)).Delete
+        Next
+        
+        Dim temp As String
+        temp = Left(sDir, Len(sDir) - 4)
+        'delSel
+        
+        ActiveWorkbook.SaveAs Filename:=curdir & "\" & temp & ".xlsx", _
+            FileFormat:=xlExcel8, Password:="", WriteResPassword:="", _
+            ReadOnlyRecommended:=False, CreateBackup:=False, ConflictResolution:=xlLocalSessionChanges
+        'ActiveWorkbook.Close
+        Application.WindowState = xlMaximized
+        sDir = Dir
+    Wend
+   
+End Sub
+
+Sub delSel()
+Dim arr As Variant, k As Boolean, ele, i As Integer, first As Boolean, sel As Range
+'arr = Split("S,Cl,P,Cr,Mn,Ni,Cu,Zn,Se,As,Cd,Hg,Pb,SiO2,Al2O3,K2O,MgO,CaO,Na2O,Fe2O3", ",")
+i = 1
+first = True
+
+Do While Cells(2, i + 5) <> ""
+
+k = True
+'若该单元格在字符串数组当中，则设置k为false
+For Each ele In arr
+If Cells(2, i + 5) = ele Then
+    k = False
+    Exit For
+End If
+Next
+
+If k Then
+    '若为第一次设置sel，则不适用union函数，且设置first为false
+    If first Then
+        Set sel = Columns(i + 5)
+        first = False
+    Else
+        Set sel = Union(sel, Columns(i + 5))
+    End If
+End If
+
+i = i + 1
+Loop
+
+sel.Delete
+
+Set sel = Union(Columns(2), Columns(3), Columns(4), Columns(5))
+sel.Delete
+
+Cells(1, 1).Select
+End Sub
+
