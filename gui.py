@@ -13,7 +13,7 @@ import time
 from sklearn.metrics import r2_score
 import math
 import matplotlib.pyplot as plt
-
+from FitSheetWrapper import FitSheetWrapper
 
 class Example(QWidget):
 
@@ -204,18 +204,18 @@ class Example(QWidget):
         timeStr = time.strftime('%Y-%m-%d %H-%M-%S', time.localtime(time.time()))
         timeStrTotal = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time()))
         newWb = copy(book)
-        sheet1 = newWb.add_sheet(timeStr)
+        sheet1 = FitSheetWrapper(newWb.add_sheet(timeStr))
         sheet1.write(0, 0, '计算结果')
         sheet1.write(0, 1, '当前日期 ' + timeStrTotal)
         i = 1
         sheet1.write(i, 1, '方程系数')
-        sheet1.write(i + 1, 0, 'c1')
+        sheet1.write(i + 1, 0, 'Cml/ug•L-1')
         sheet1.write(i + 1, 1, best_x_i[0])
-        sheet1.write(i + 2, 0, 'c2')
+        sheet1.write(i + 2, 0, 'K-1')
         sheet1.write(i + 2, 1, best_x_i[1])
         i += 3
-        sheet1.write(i, 0, '观察值')
-        sheet1.write(i, 1, '拟合值')
+        sheet1.write(i, 0, '观察值(Cm\'/ug•L-1)')
+        sheet1.write(i, 1, '拟合值(Cm\'/ug•L-1)')
         sheet1.write(i, 2, '残差')
 
         ypred = []
@@ -237,9 +237,9 @@ class Example(QWidget):
         sheet1.write(i, 3, rr)
 
         i += 1
-        sheet1.write(i, 0, '厚度差')
-        sheet1.write(i, 1, 'Mab+')
-        sheet1.write(i, 2, 'Mab')
+        sheet1.write(i, 0, '厚度差/mm')
+        sheet1.write(i, 1, 'Mab+/ng')
+        sheet1.write(i, 2, 'Mab/ng')
         i += 1
         for j in range(len(x)):
             sheet1.write(i + j, 0, x[j])
@@ -253,7 +253,7 @@ class Example(QWidget):
         max_Cm_pie = best_x_i[0] * (1 - np.exp(-best_x_i[1] * max_delt_g_differ ** 2 / (2 * dml)))
         max_Mab_plus = max_Cm_pie * dml * A * t / max_delt_g_differ + max_Mab
         Cm = (max_Mab_plus * (max_delt_g_differ + delt_g0) / (A * t) - max_Cm_pie * dml) / dm
-        sheet1.write(i, 0, 'Cm=')
+        sheet1.write(i, 0, 'Cm(ug/L)=')
         sheet1.write(i, 1, Cm)
 
         newWb.save(xlsfile)
