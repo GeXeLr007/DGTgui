@@ -12,8 +12,11 @@ import Calculator
 import time
 from sklearn.metrics import r2_score
 import math
-import matplotlib.pyplot as plt
 from FitSheetWrapper import FitSheetWrapper
+import os
+import matplotlib.pyplot as plt
+from PIL import Image
+
 
 class Example(QWidget):
 
@@ -28,8 +31,8 @@ class Example(QWidget):
         self.setWindowIcon(QIcon('logo.ico'))
 
         self.lb1 = QLabel('元素：')
-        self.lb2 = QLabel('窗口面积A：')
-        self.lb3 = QLabel('时间t：')
+        self.lb2 = QLabel('窗口面积A/cm2：')
+        self.lb3 = QLabel('时间t/s：')
         self.lb4 = QLabel('Cd')
         self.lb5 = QLabel('4.64')
         self.lb6 = QLabel('86400')
@@ -52,7 +55,7 @@ class Example(QWidget):
         self.bt4.clicked.connect(self.showDialog)
         self.bt5.clicked.connect(self.showDialog)
 
-        self.btCalc.clicked.connect(self.calc)
+        self.btCalc.clicked.connect(self.calcBatch)
 
         grid = QGridLayout()
         grid.setSpacing(10)
@@ -121,13 +124,22 @@ class Example(QWidget):
             if ok:
                 self.lb10.setText(str(text))
 
-    def calc(self):
-        xlsfile = r"data.xls"  # 打开指定路径中的xls文件
+    def calcBatch(self):
+        path = os.getcwd() + '\\data'  # 文件夹目录
+        files = os.listdir(path)  # 得到文件夹下的所有文件名称
+        for file in files:  # 遍历文件夹
+            if not os.path.isdir(file) and os.path.splitext(file)[-1][1:] == "xls":  # 判断是否是文件夹，不是文件夹且是xls文件才打开
+                self.calc(path + '\\' + file)
+
+        plt.close()
+        QMessageBox.about(self, '完成', '已完成计算，请打开data文件夹')
+
+    def calc(self, xlsfile):
         file = None
         try:
             file = open(xlsfile, 'a')
         except PermissionError as e:
-            QMessageBox.about(self, '错误', '请先关闭data.xls再开始计算')
+            QMessageBox.about(self, '错误', '请先关闭' + xlsfile + '文件再开始计算')
             return
         finally:
             if file:
@@ -205,12 +217,20 @@ class Example(QWidget):
         timeStrTotal = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time()))
         newWb = copy(book)
         sheet1 = FitSheetWrapper(newWb.add_sheet(timeStr))
-        sheet1.write(0, 0, '计算结果')
-        sheet1.write(0, 1, '当前日期 ' + timeStrTotal)
-        i = 1
+        i = 0
+        sheet1.write(i, 0, '元素：' + self.lb4.text())
+        sheet1.write(i, 1, '窗口面积A/cm2：' + self.lb5.text())
+        sheet1.write(i, 2, '时间t/s：' + self.lb6.text())
+
+        i += 1
+        sheet1.write(i, 0, '计算结果')
+        sheet1.write(i, 1, '当前日期 ' + timeStrTotal)
+
+        i += 1
         sheet1.write(i, 1, '方程系数')
         sheet1.write(i + 1, 0, 'Cml/ug•L-1')
-        sheet1.write(i + 1, 1, best_x_i[0])
+        Cml = best_x_i[0]
+        sheet1.write(i + 1, 1, Cml)
         sheet1.write(i + 2, 0, 'K-1')
         sheet1.write(i + 2, 1, best_x_i[1])
         i += 3
@@ -256,20 +276,39 @@ class Example(QWidget):
         sheet1.write(i, 0, 'Cm(ug/L)=')
         sheet1.write(i, 1, Cm)
 
-        newWb.save(xlsfile)
-        QMessageBox.about(self, '完成', '已完成计算，请打开data.xls')
+        i += 1
+        sheet1.write(i, 0, 'C(ug/L)=')
+        sheet1.write(i, 1, Cm + Cml)
 
-        plt.figure(1)
+        fig = plt.figure(1)
         self.myplot(yplot1=average_result_record, yplot2=best_result_record,
                     title_str=u"$change\quadof\quadaverage\quadand\quadbest\quadresult$",
                     x_label=u"$iteration\quadtime$",
                     y_label=u"$loss$", legend1=u"$average\quadresult$", legend2=u"$best\quadresult$")
+        jpgName = 'foo.jpg'
+        bmpNmae = 'foo.bmp'
+        fig.savefig(jpgName)
+        Image.open(jpgName).save(bmpNmae)
+        sheet1.insert_bitmap(bmpNmae, 0, 5, scale_x=0.5, scale_y=0.5)
+        os.remove(jpgName)
+        os.remove(bmpNmae)
 
-        plt.figure(2)
+        fig.clear()
         self.myplot(yplot1=Mab_plus, yplot2=Mab, xplot=x,
                     title_str=u"$change\quadof\quadM\quadwith\quaddifferent\quad\Delta g$",
                     x_label=u"$\Delta g/mm$",
                     y_label=u"$M/ng$", legend1=u"$Ma^{b+}$", legend2=u"$Ma^{b}$", isO='o')
+        jpgName = 'foo.jpg'
+        bmpNmae = 'foo.bmp'
+        fig.savefig(jpgName)
+        Image.open(jpgName).save(bmpNmae)
+        sheet1.insert_bitmap(bmpNmae, 19, 5, scale_x=0.5, scale_y=0.5)
+        os.remove(jpgName)
+        os.remove(bmpNmae)
+        fig.clear()
+
+
+        newWb.save(xlsfile)
 
     def myplot(self, yplot1, yplot2, title_str, x_label, y_label, legend1, legend2, isO='', xplot=None):
         if xplot is None:
